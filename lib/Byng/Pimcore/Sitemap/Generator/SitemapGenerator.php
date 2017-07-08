@@ -21,6 +21,9 @@ use Byng\Pimcore\Sitemap\Gateway\DocumentGateway;
 use Byng\Pimcore\Sitemap\Notifier\GoogleNotifier;
 use SimpleXMLElement;
 
+use Pimcore\View\Helper\Url;
+
+
 /**
  * Sitemap Generator
  *
@@ -52,31 +55,93 @@ final class SitemapGenerator
         $this->hostUrl = Config::getSystemConfig()->get("general")->get("domain");
         $this->documentGateway = new DocumentGateway();
 
+        $this->newXml();
+    }
+
+    private function newXml() {
         $this->xml = new SimpleXMLElement(
             '<?xml version="1.0" encoding="UTF-8"?>'
             . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>'
         );
     }
 
+    private function newIndexXml() {
+        $this->xml = new SimpleXMLElement(
+            '<?xml version="1.0" encoding="UTF-8"?>'
+            . '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></sitemapindex>'
+        );
+    }
+
+    public function generateXml()
+    {
+        $this->generateDocumentsXml();
+        $this->generateObjectsXml();
+        $this->generateIndexXml();
+
+        if (Config::getSystemConfig()->get("general")->get("environment") === "production") {
+            $this->notifySearchEngines();
+        }
+    }
+
     /**
-     * Generates the sitemap.xml file
+     * Generates the sitemap-documents.xml file
      *
      * @return void
      */
-    public function generateXml()
+    public function generateDocumentsXml()
     {
         // Get all the root elements with parentId '1'
         $rootDocuments = $this->documentGateway->getChildren(1);
 
         foreach ($rootDocuments as $rootDocument) {
-            $this->addUrlChild($rootDocument);
+            $this->addDocumentUrlChild($rootDocument);
             $this->listAllChildren($rootDocument);
         }
-        $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap.xml");
+        $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap-documents.xml");
 
-        if (Config::getSystemConfig()->get("general")->get("environment") === "production") {
-            $this->notifySearchEngines();
+    }
+
+    public function generateObjectsXml()
+    {
+        if (defined("SITEMAP_OBJECTS")) {
+            foreach (SITEMAP_OBJECTS as $name => $route) {
+                $this->newXml();
+                $objectClass = "\Pimcore\Model\Object\\{$name}";
+                $objects = $objectClass::getList();
+                foreach ($objects as $object) {
+                    $this->addObjectUrlChild($object, $route);
+                }
+                $lowercaseName = strtolower($name);
+                $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap-{$lowercaseName}s.xml");
+            }
         }
+    }
+
+    public function generateIndexXml()
+    {
+        $this->newIndexXml();
+        $lastMod = new \DateTime();
+
+        $url = $this->xml->addChild("sitemap");
+        $url->addChild('loc', $this->hostUrl . "/sitemap-index.xml");
+        $url->addChild('lastmod', $this->getDateFormat($lastMod->getTimestamp()));
+
+        $url = $this->xml->addChild("sitemap");
+        $url->addChild('loc', $this->hostUrl . "/sitemap-documents.xml");
+        $url->addChild('lastmod', $this->getDateFormat($lastMod->getTimestamp()));
+
+
+        if (defined("SITEMAP_OBJECTS")) {
+            foreach (SITEMAP_OBJECTS as $name => $route) {
+                $url = $this->xml->addChild("sitemap");
+                $lowercaseName = strtolower($name);
+                $url->addChild('loc', $this->hostUrl . "/sitemap-{$lowercaseName}s.xml");
+                $url->addChild('lastmod', $this->getDateFormat($lastMod->getTimestamp()));
+            }
+        }
+        $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap.xml");
+        $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap-index.xml");
+
     }
 
     /**
@@ -90,7 +155,7 @@ final class SitemapGenerator
         $children = $this->documentGateway->getChildren($document->getId());
 
         foreach ($children as $child) {
-            $this->addUrlChild($child);
+            $this->addDocumentUrlChild($child);
             $this->listAllChildren($child);
         }
     }
@@ -101,7 +166,7 @@ final class SitemapGenerator
      * @param Document $document
      * @return void
      */
-    private function addUrlChild(Document $document)
+    private function addDocumentUrlChild(Document $document)
     {
         if (
             $document instanceof Document\Page &&
@@ -114,6 +179,19 @@ final class SitemapGenerator
         }
     }
 
+    private function addObjectUrlChild($object, $route)
+    {
+        // if (!$object->getProperty("sitemap_exclude")) {
+
+            $url = $this->xml->addChild("url");
+
+            $urlHelper = new Url();
+            $route = $urlHelper->url(['key' => $object->getKey()], $route, true);
+            echo $this->hostUrl . $route . "\n";
+            $url->addChild('loc', $this->hostUrl . $route);
+            $url->addChild('lastmod', $this->getDateFormat($object->getModificationDate()));
+        // }
+    }
     /**
      * Format a given date.
      *
