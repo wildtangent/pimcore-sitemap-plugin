@@ -16,8 +16,9 @@
 namespace Byng\Pimcore\Sitemap\Generator;
 
 use Pimcore\Config;
-use Byng\Pimcore\Sitemap\Notifier\BaseGenerator;
-use Byng\Pimcore\Sitemap\Generator\SitemapGenerator;
+use Byng\Pimcore\Sitemap\Generator\BaseGenerator;
+use Byng\Pimcore\Sitemap\Generator\SitemapDocumentsGenerator;
+use Byng\Pimcore\Sitemap\Generator\SitemapObjectsGenerator;
 use Byng\Pimcore\Sitemap\Notifier\GoogleNotifier;
 use SimpleXMLElement;
 
@@ -29,10 +30,24 @@ use SimpleXMLElement;
 final class SitemapIndexGenerator extends BaseGenerator
 {
     /**
-     * @var DocumentGateway
+     * @var SitemapDocumentsGenerator
      */
-    private $documentGateway;
+    private $sitemapDocumentsGenerator;
 
+    /**
+     * @var SitemapObjectsGenerator
+     */
+    private $sitemapObjectsGenerator;
+
+    /**
+     * SitemapIndexGenerator constructor.
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        $this->sitemapDocumentsGenerator = new SitemapDocumentsGenerator();
+        $this->sitemapObjectsGenerator = new SitemapObjectsGenerator();
+    }
 
     protected function newXmlDocument() {
         $this->xml = new SimpleXMLElement(
@@ -43,8 +58,8 @@ final class SitemapIndexGenerator extends BaseGenerator
 
     public function generateXml()
     {
-        $this->sitemapGenerator->generateDocumentsXml();
-        $this->sitemapGenerator->generateObjectsXml();
+        $this->sitemapDocumentsGenerator->generateXml();
+        $this->sitemapObjectsGenerator->generateXml();
         $this->generateIndexXml();
 
         if (Config::getSystemConfig()->get("general")->get("environment") === "production") {
@@ -54,7 +69,6 @@ final class SitemapIndexGenerator extends BaseGenerator
 
     public function generateIndexXml()
     {
-        $this->newIndexXml();
         $lastMod = new \DateTime();
 
         $url = $this->xml->addChild("sitemap");

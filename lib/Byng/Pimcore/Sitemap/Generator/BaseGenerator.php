@@ -41,7 +41,7 @@ class BaseGenerator
      */
     public function __construct()
     {
-        $this->hostUrl = Config::getSystemConfig()->get("general")->get("domain");
+        $this->hostUrl = "https://" . Config::getSystemConfig()->get("general")->get("domain");
         $this->newXmlDocument();
     }
 
