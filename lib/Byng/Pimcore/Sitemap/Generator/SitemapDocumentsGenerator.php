@@ -15,29 +15,21 @@
 
 namespace Byng\Pimcore\Sitemap\Generator;
 
-use Pimcore\Config;
 use Pimcore\Model\Document;
+use Byng\Pimcore\Sitemap\Generator\BaseGenerator;
 use Byng\Pimcore\Sitemap\Gateway\DocumentGateway;
-use Byng\Pimcore\Sitemap\Notifier\GoogleNotifier;
 use SimpleXMLElement;
+
+use Pimcore\View\Helper\Url;
+
 
 /**
  * Sitemap Generator
  *
  * @author Ioannis Giakoumidis <ioannis@byng.co>
  */
-final class SitemapGenerator
+final class SitemapDocumentsGenerator extends BaseGenerator
 {
-    /**
-     * @var string
-     */
-    private $hostUrl;
-
-    /**
-     * @var SimpleXMLElement
-     */
-    private $xml;
-
     /**
      * @var DocumentGateway
      */
@@ -49,20 +41,17 @@ final class SitemapGenerator
      */
     public function __construct()
     {
-        $this->hostUrl = Config::getSystemConfig()->get("general")->get("domain");
+        parent::__construct();
         $this->documentGateway = new DocumentGateway();
+    }
 
+    protected function newXmlDocument() {
         $this->xml = new SimpleXMLElement(
             '<?xml version="1.0" encoding="UTF-8"?>'
             . '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"></urlset>'
         );
     }
 
-    /**
-     * Generates the sitemap.xml file
-     *
-     * @return void
-     */
     public function generateXml()
     {
         // Get all the root elements with parentId '1'
@@ -72,11 +61,8 @@ final class SitemapGenerator
             $this->addUrlChild($rootDocument);
             $this->listAllChildren($rootDocument);
         }
-        $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap.xml");
+        $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap-documents.xml");
 
-        if (Config::getSystemConfig()->get("general")->get("environment") === "production") {
-            $this->notifySearchEngines();
-        }
     }
 
     /**
@@ -111,33 +97,6 @@ final class SitemapGenerator
             $url = $this->xml->addChild("url");
             $url->addChild('loc', $this->hostUrl . $document->getFullPath());
             $url->addChild('lastmod', $this->getDateFormat($document->getModificationDate()));
-        }
-    }
-
-    /**
-     * Format a given date.
-     *
-     * @param $date
-     * @return string
-     */
-    private function getDateFormat($date)
-    {
-        return gmdate(DATE_ATOM, $date);
-    }
-
-    /**
-     * Notify search engines about the sitemap update.
-     *
-     * @return void
-     */
-    private function notifySearchEngines()
-    {
-        $googleNotifier = new GoogleNotifier();
-
-        if ($googleNotifier->notify()) {
-            echo "Google has been notified \n";
-        } else {
-            echo "Google has not been notified \n";
         }
     }
 }
