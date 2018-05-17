@@ -94,7 +94,14 @@ final class SitemapDocumentsGenerator extends BaseGenerator
         ) {
             echo $this->hostUrl . $document->getFullPath() . "\n";
             $url = $this->xml->addChild("url");
-            $url->addChild('loc', $this->hostUrl . $document->getFullPath());
+            $path = $document->getFullPath();
+            dump($this->site->getRootPath());
+
+            if ($this->site) {
+                $path = preg_replace("#{$this->site->getRootPath()}#",'', $path);
+            }
+
+            $url->addChild('loc', $this->hostUrl . $path);
             $url->addChild('lastmod', $this->getDateFormat($document->getModificationDate()));
         }
     }
