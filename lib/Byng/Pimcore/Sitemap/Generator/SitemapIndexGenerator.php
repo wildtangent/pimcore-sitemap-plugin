@@ -21,6 +21,8 @@ use Byng\Pimcore\Sitemap\Generator\SitemapDocumentsGenerator;
 use Byng\Pimcore\Sitemap\Generator\SitemapObjectsGenerator;
 use Byng\Pimcore\Sitemap\Notifier\GoogleNotifier;
 use SimpleXMLElement;
+use Pimcore\Model\Site;
+
 
 /**
  * Sitemap Generator
@@ -29,26 +31,6 @@ use SimpleXMLElement;
  */
 final class SitemapIndexGenerator extends BaseGenerator
 {
-    /**
-     * @var SitemapDocumentsGenerator
-     */
-    private $sitemapDocumentsGenerator;
-
-    /**
-     * @var SitemapObjectsGenerator
-     */
-    private $sitemapObjectsGenerator;
-
-    /**
-     * SitemapIndexGenerator constructor.
-     */
-    public function __construct()
-    {
-        parent::__construct();
-        $this->sitemapDocumentsGenerator = new SitemapDocumentsGenerator();
-        $this->sitemapObjectsGenerator = new SitemapObjectsGenerator();
-    }
-
     protected function newXmlDocument() {
         $this->xml = new SimpleXMLElement(
             '<?xml version="1.0" encoding="UTF-8"?>'
@@ -57,17 +39,6 @@ final class SitemapIndexGenerator extends BaseGenerator
     }
 
     public function generateXml()
-    {
-        $this->sitemapDocumentsGenerator->generateXml();
-        $this->sitemapObjectsGenerator->generateXml();
-        $this->generateIndexXml();
-
-        if (Config::getSystemConfig()->get("general")->get("environment") === "production") {
-            $this->notifySearchEngines();
-        }
-    }
-
-    public function generateIndexXml()
     {
         $lastMod = new \DateTime();
 
@@ -80,16 +51,19 @@ final class SitemapIndexGenerator extends BaseGenerator
         $url->addChild('lastmod', $this->getDateFormat($lastMod->getTimestamp()));
 
 
-        if (defined("SITEMAP_OBJECTS")) {
-            foreach (SITEMAP_OBJECTS as $name => $route) {
-                $url = $this->xml->addChild("sitemap");
-                $lowercaseName = strtolower($name);
-                $url->addChild('loc', $this->hostUrl . "/sitemap-{$lowercaseName}s.xml");
-                $url->addChild('lastmod', $this->getDateFormat($lastMod->getTimestamp()));
+        if (defined('SITEMAP_OBJECTS')) {
+            if ($this->site && $this->site->getRootDocument()->getKey() === 'battersea-power-station') {
+
+                foreach (SITEMAP_OBJECTS as $name => $route) {
+                    $url = $this->xml->addChild('sitemap');
+                    $lowercaseName = strtolower($name);
+                    $url->addChild('loc', $this->hostUrl . "/sitemap-{$lowercaseName}s.xml");
+                    $url->addChild('lastmod', $this->getDateFormat($lastMod->getTimestamp()));
+                }
             }
         }
-        $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap.xml");
-        $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap-index.xml");
+        $this->xml->asXML($this->sitemapPath('/sitemap.xml'));
+        $this->xml->asXML($this->sitemapPath('/sitemap-index.xml'));
 
     }
 

@@ -38,7 +38,7 @@ final class SitemapObjectsGenerator extends BaseGenerator
 
     public function generateXml()
     {
-        if (defined("SITEMAP_OBJECTS")) {
+        if (defined('SITEMAP_OBJECTS')) {
             foreach (SITEMAP_OBJECTS as $name => $route) {
                 $this->newXmlDocument();
                 $objectClass = "\Pimcore\Model\Object\\{$name}";
@@ -47,16 +47,16 @@ final class SitemapObjectsGenerator extends BaseGenerator
                     $this->addUrlChild($object, $route);
                 }
                 $lowercaseName = strtolower($name);
-                $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap-{$lowercaseName}s.xml");
+                $this->xml->asXML($this->sitemapPath("/sitemap-{$lowercaseName}s.xml"));
             }
         }
     }
 
     private function addUrlChild($object, $route)
     {
-        if (!$object->getProperty("sitemap_exclude")) {
+        if (!$object->getProperty('sitemap_exclude')) {
 
-            $url = $this->xml->addChild("url");
+            $url = $this->xml->addChild('url');
 
             $urlHelper = new Url();
             $route = $urlHelper->url(['key' => $object->getKey()], $route, true);

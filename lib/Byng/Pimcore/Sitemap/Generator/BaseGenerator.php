@@ -32,16 +32,45 @@ class BaseGenerator
     protected $hostUrl;
 
     /**
+     * @var string
+     */
+    protected $mainDomain;
+
+    /**
+     * @var integer
+     */
+    protected $rootId;
+
+    /**
+     * @var string
+     */
+    protected $protocol = 'https';
+
+    protected $site;
+
+    /**
      * @var SimpleXMLElement
      */
     protected $xml;
 
+
     /**
      * BaseGenerator constructor.
      */
-    public function __construct()
+    public function __construct($site = null)
     {
-        $this->hostUrl = "https://" . Config::getSystemConfig()->get("general")->get("domain");
+        if ($site) {
+            $this->mainDomain = $site->getMainDomain();
+            $this->rootId = $site->getRootId();
+            $this->site = $site;
+            $this->writeSitemapFolder();
+        } else {
+            $this->mainDomain = Config::getSystemConfig()->get('general')->get('domain');
+            $this->rootId = 1;
+            $this->site = null;
+        }
+
+        $this->hostUrl = $this->protocol . '://' . $this->mainDomain;
         $this->newXmlDocument();
     }
 
@@ -49,7 +78,6 @@ class BaseGenerator
     {
         $this->xml = new SimpleXMLElement('<?xml version="1.0" encoding="UTF-8"?>');
     }
-
 
     public function generateXml()
     {
@@ -65,5 +93,19 @@ class BaseGenerator
     protected function getDateFormat($date)
     {
         return gmdate(DATE_ATOM, $date);
+    }
+
+    protected function sitemapPath($filename)
+    {
+        if ($this->site) {
+            return PIMCORE_DOCUMENT_ROOT . '/sitemaps/' . $this->mainDomain . $filename;
+        } else {
+            return PIMCORE_DOCUMENT_ROOT . $filename;
+        }
+    }
+
+    protected function writeSitemapFolder()
+    {
+        return mkdir((PIMCORE_DOCUMENT_ROOT . '/sitemaps/' . $this->mainDomain), 0755, true);
     }
 }

@@ -19,7 +19,7 @@ use Pimcore\API\Plugin as PluginLib;
 use Pimcore\Model\Property\Predefined as PredefinedProperty;
 use Pimcore\Model\Schedule\Manager\Procedural as ProceduralScheduleManager;
 use Pimcore\Model\Schedule\Maintenance\Job as MaintenanceJob;
-use Byng\Pimcore\Sitemap\Generator\SitemapIndexGenerator;
+use Byng\Pimcore\Sitemap\Generator\SitemapGenerator;
 
 /**
  * Sitemap Plugin
@@ -42,7 +42,7 @@ class SitemapPlugin extends PluginLib\AbstractPlugin implements PluginLib\Plugin
             $target = $event->getTarget();
             $target->registerJob(new MaintenanceJob(
                 self::MAINTENANCE_JOB_GENERATE_SITEMAP,
-                new SitemapIndexGenerator(),
+                new SitemapGenerator(),
                 "generateXml"
             ));
         });
