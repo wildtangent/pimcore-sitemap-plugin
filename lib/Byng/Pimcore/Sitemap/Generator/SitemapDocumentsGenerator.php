@@ -21,6 +21,7 @@ use Byng\Pimcore\Sitemap\Gateway\DocumentGateway;
 use SimpleXMLElement;
 
 use Pimcore\View\Helper\Url;
+use Pimcore\Model\Site;
 
 
 /**
@@ -39,9 +40,9 @@ final class SitemapDocumentsGenerator extends BaseGenerator
     /**
      * SitemapGenerator constructor.
      */
-    public function __construct()
+    public function __construct($site = null)
     {
-        parent::__construct();
+        parent::__construct($site);
         $this->documentGateway = new DocumentGateway();
     }
 
@@ -55,14 +56,12 @@ final class SitemapDocumentsGenerator extends BaseGenerator
     public function generateXml()
     {
         // Get all the root elements with parentId '1'
-        $rootDocuments = $this->documentGateway->getChildren(1);
-
+        $rootDocuments = $this->documentGateway->getChildren($this->rootId);
         foreach ($rootDocuments as $rootDocument) {
             $this->addUrlChild($rootDocument);
             $this->listAllChildren($rootDocument);
         }
-        $this->xml->asXML(PIMCORE_DOCUMENT_ROOT . "/sitemap-documents.xml");
-
+        $this->xml->asXML($this->sitemapPath('/sitemap-documents.xml'));
     }
 
     /**
