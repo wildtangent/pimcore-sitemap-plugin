@@ -95,7 +95,6 @@ final class SitemapDocumentsGenerator extends BaseGenerator
             echo $this->hostUrl . $document->getFullPath() . "\n";
             $url = $this->xml->addChild("url");
             $path = $document->getFullPath();
-            dump($this->site->getRootPath());
 
             if ($this->site) {
                 $path = preg_replace("#{$this->site->getRootPath()}#",'', $path);
